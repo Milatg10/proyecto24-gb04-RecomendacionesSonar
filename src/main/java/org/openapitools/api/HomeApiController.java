@@ -28,11 +28,12 @@ import service.VideoService;
 @Controller
 @RequestMapping("${openapi.tubeFlixRecomendacionesYVisualizacionesOpenAPI30.base-path:}")
 public class HomeApiController implements HomeApi {
-	
-	@Autowired
-	private VideoService videoservice;
-	@Autowired
-	private UserService userservice;
+
+    @Autowired
+    private VideoService videoservice;
+
+    @Autowired
+    private UserService userservice;
 
     private final NativeWebRequest request;
 
@@ -44,144 +45,114 @@ public class HomeApiController implements HomeApi {
     public Optional<NativeWebRequest> getRequest() {
         return Optional.ofNullable(request);
     }
-    
+
+    // Método auxiliar para manejar respuestas estándar
+    private <T> ResponseEntity<T> buildResponse(T body, HttpStatus status) {
+        return new ResponseEntity<>(body, status);
+    }
+
     @Override
     public ResponseEntity<List<Video>> getVideosByGenre(String genre) {
-		System.out.println("-------- HomeApiController -> getVideosByGenre() -----------");
+        logMethodCall("getVideosByGenre");
+        ArrayList<Video> videos = videoservice.getVideosByGenre(genre);
+        return buildResponse(videos, HttpStatus.OK);
+    }
 
-    	System.out.println("Service: Llamada a servicio de videos para obtener videos según el genero dado");
-    	ArrayList<Video> videos = videoservice.getVideosByGenre(genre);
-    	
-            return new ResponseEntity<>(videos,HttpStatus.OK);
-        }
-    
     @Override
     public ResponseEntity<List<Video>> searchVideosByTitle(String query) {
-		System.out.println("-------- HomeApiController -> searchVideosByTitle() -----------");
-    	
-    	System.out.println("Service: Llamada a servicio de videos para obtener los videos por el titulo");
-    	ArrayList<Video> videos = videoservice.getVideosByTitle(query);
-    	
-            return new ResponseEntity<>(videos,HttpStatus.OK);
+        logMethodCall("searchVideosByTitle");
+        ArrayList<Video> videos = videoservice.getVideosByTitle(query);
+        return buildResponse(videos, HttpStatus.OK);
+    }
 
-        }
-    
     @Override
     public ResponseEntity<List<Video>> getUserVideoHistory(
             @NotNull @Parameter(name = "username", description = "Nombre del usuario", required = true, in = ParameterIn.QUERY) 
-            @PathVariable("username") String username
-        ) {
-		System.out.println("-------- HomeApiController -> getUserVideoHistory() -----------");
-		
-    	System.out.println("Service: Llamada a servicio de videos para obtener historial");
-    	ArrayList<Video> videoList = userservice.getUserVideoHistory(username);
-    	
-            return new ResponseEntity<>(videoList,HttpStatus.OK);
-        }
-    
+            @PathVariable("username") String username) {
+        logMethodCall("getUserVideoHistory");
+        ArrayList<Video> videoList = userservice.getUserVideoHistory(username);
+        return buildResponse(videoList, HttpStatus.OK);
+    }
+
     @Override
     public ResponseEntity<List<Video>> getTopVideos() {
-		System.out.println("-------- HomeApiController -> getTopVideos() -----------");
-		
-		
-    	System.out.println("Service: Llamada a servicio de videos para obtener el top de videos");
-    	ArrayList<Video> videos = videoservice.getTopVideos();
-    	
-        return new ResponseEntity<>(videos,HttpStatus.OK);
+        logMethodCall("getTopVideos");
+        ArrayList<Video> videos = videoservice.getTopVideos();
+        return buildResponse(videos, HttpStatus.OK);
     }
-    
+
     @Override
     public ResponseEntity<List<Video>> getRecommendationsByUsername(
             @NotNull @Parameter(name = "username", description = "Nombre del usuario", required = true, in = ParameterIn.PATH) 
-            @PathVariable("username") String username
-    ) {
-		System.out.println("-------- HomeApiController -> getRecommendationsByUsername() -----------");
+            @PathVariable("username") String username) {
+        logMethodCall("getRecommendationsByUsername");
 
-        // Obtener el historial de videos del usuario
-    	System.out.println("Service: Llamada a servicio de usuarios para obtener el historial de videos");
         ArrayList<Video> videoList = userservice.getUserVideoHistory(username);
 
         if (videoList == null || videoList.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND); // Usuario sin historial
+            return buildResponse(null, HttpStatus.NOT_FOUND);
         }
 
-        // Contar el número de videos por género
+        String mostViewedGenre = getMostViewedGenre(videoList);
+
+        if (mostViewedGenre == null) {
+            return buildResponse(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        ArrayList<Video> videos = videoservice.getVideosByGenre(mostViewedGenre);
+
+        return (videos == null || videos.isEmpty())
+                ? buildResponse(null, HttpStatus.NOT_FOUND)
+                : buildResponse(videos, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<List<Video>> getVideosByFollowing(@PathVariable("username") String username) {
+        logMethodCall("getVideosByFollowing");
+
+        ArrayList<Video> followingVideos = new ArrayList<>();
+        ArrayList<Long> idFollowing = userservice.getFollowingIds(username);
+
+        for (Long id : idFollowing) {
+            followingVideos.addAll(videoservice.getRandomVideosByUserId(id));
+        }
+
+        return buildResponse(followingVideos, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<List<User>> getProfilesByFollowing(@PathVariable("username") String username) {
+        logMethodCall("getProfilesByFollowing");
+        ArrayList<User> followingProfiles = userservice.getFollowingProfiles(username);
+        return buildResponse(followingProfiles, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<List<User>> getProfilesByNotFollowing(@PathVariable("username") String username) {
+        logMethodCall("getProfilesByNotFollowing");
+        ArrayList<User> notFollowingProfiles = userservice.getNotFollowingProfiles(username);
+        return buildResponse(notFollowingProfiles, HttpStatus.OK);
+    }
+
+    // Método auxiliar para determinar el género más visto
+    private String getMostViewedGenre(ArrayList<Video> videoList) {
         Map<String, Integer> genreCounts = new HashMap<>();
 
         for (Video video : videoList) {
             String genre = video.getGenre();
-
             if (genre != null) {
                 genreCounts.put(genre, genreCounts.getOrDefault(genre, 0) + 1);
             }
         }
 
-        // Determinar el género más visto
-        String mostViewedGenre = null;
-        int maxCount = 0;
-
-        for (Map.Entry<String, Integer> entry : genreCounts.entrySet()) {
-            if (entry.getValue() > maxCount) {
-                maxCount = entry.getValue();
-                mostViewedGenre = entry.getKey();
-            }
-        }
-
-        if (mostViewedGenre == null) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // No se pudo determinar el género
-        }
-
-        // Obtener los videos del género más visto
-    	System.out.println("Service: Llamada a servicio de videos para obtener los videos de un genero");
-        ArrayList<Video> videos = videoservice.getVideosByGenre(mostViewedGenre);
-
-        if (videos == null || videos.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND); // No hay videos en este género
-        }
-
-        return new ResponseEntity<>(videos, HttpStatus.OK); // Lista de videos del género más visto
+        return genreCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
-    
-    @Override
-    public ResponseEntity<List<Video>> getVideosByFollowing(
-            @PathVariable("username") String username
-        ) {
-		System.out.println("-------- HomeApiController -> getVideosByFollowing() -----------");
-    	
-    		ArrayList<Video> FollowingVideos = new ArrayList<Video>();
-    		
-        	System.out.println("Service: Llamada a servicio de usuarios para obtener los ids de los usuarios seguidos");
-            ArrayList<Long> idFollowing = userservice.getFollowingIds(username);
-            
-            for(Long id : idFollowing) {
-            	System.out.println("Service: Llamada a servicio de videos para obtener videos aleatorios de un usuario con su id");
-            	FollowingVideos.addAll(videoservice.getRandomVideosByUserId(id));
-            }
-            
-            return new ResponseEntity<>(FollowingVideos, HttpStatus.OK); // Lista de videos del género más visto
-        }
-    
-    @Override
-    public ResponseEntity<List<User>> getProfilesByFollowing(
-            @PathVariable("username") String username
-        ) {
-    		System.out.println("-----HomeAPI : getProfilesByFollowing() ------");
-    		ArrayList<User> FollowingProfiles = new ArrayList<User>();
-        	System.out.println("Service: Llamada a servicio de usuarios para obtener los usuarios seguidos");
-            FollowingProfiles = userservice.getFollowingProfiles(username);
-            
-            return new ResponseEntity<>(FollowingProfiles, HttpStatus.OK); // Lista de videos del género más visto
-        }
-    
-    @Override
-    public ResponseEntity<List<User>> getProfilesByNotFollowing(
-            @PathVariable("username") String username
-        ) {
-    		System.out.println("-----HomeAPI : getProfilesByNotFollowing() ------");
-    		ArrayList<User> notFollowingProfiles = new ArrayList<User>();
-        	System.out.println("Service: Llamada a servicio de usuarios para obtener los usuarios no seguidos");
-            notFollowingProfiles = userservice.getNotFollowingProfiles(username);
-            
-            return new ResponseEntity<>(notFollowingProfiles, HttpStatus.OK); // Lista de videos del género más visto
-        }
+
+    // Método auxiliar para loguear llamadas a métodos
+    private void logMethodCall(String methodName) {
+        System.out.println("-------- HomeApiController -> " + methodName + "() -----------");
+    }
 }

@@ -11,81 +11,77 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class UserService {
-	
-	private final RestTemplate restTemplate = new RestTemplate();
-	private final String userServiceUrl = "http://localhost:8081"; // URL del microservicio de users actualizado
 
-	public ArrayList<Video> getUserVideoHistory(String username) {
-	    try {
-	        // Construye la URL con el nombre de usuario como parámetro
-	        String url = String.format("%s/user/%s/history", userServiceUrl, username);
+    private static final String USER_SERVICE_URL = "http://localhost:8081"; // URL del microservicio de usuarios
 
-	        // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
-	        Video[] videosArray = restTemplate.getForObject(url, Video[].class);
+    private final RestTemplate restTemplate = new RestTemplate();
 
-	        // Convierte el arreglo en un ArrayList para una mejor gestión
-	        return new ArrayList<>(Arrays.asList(videosArray));
-	    } catch (HttpClientErrorException e) {
-	        // Maneja errores, como un 400 o 404
-	        return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
-	    }
-	}
-	
-	public ArrayList<Long> getFollowingIds(String username) {
-	    try {
-	        // Construye la URL con el nombre de usuario como parámetro
-	        String url = String.format("%s/user/%s/following", userServiceUrl, username);
+    public ArrayList<Video> getUserVideoHistory(String username) {
+        try {
+            // Construye la URL con el nombre de usuario como parámetro
+            String url = String.format("%s/user/%s/history", USER_SERVICE_URL, username);
 
-	        // Envía una solicitud GET al microservicio de usuarios y obtiene un arreglo de IDs
-	        Long[] followingArray = restTemplate.getForObject(url, Long[].class);
+            // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
+            Video[] videosArray = restTemplate.getForObject(url, Video[].class);
 
-	        // Convierte el arreglo en un ArrayList para una mejor gestión
-	        return new ArrayList<>(Arrays.asList(followingArray));
-	    } catch (HttpClientErrorException e) {
-	        // Maneja errores como 400 o 404 devolviendo una lista vacía
-	        System.out.println("Error al obtener los usuarios seguidos: " + e.getStatusCode());
-	        return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
-	    } catch (Exception e) {
-	        // Manejo de otros errores no esperados
-	        e.printStackTrace();
-	        return new ArrayList<>();
-	    }
-	}
-	
-	public ArrayList<User> getFollowingProfiles(String username) {
-	    try {
-	        // Construye la URL con el nombre de usuario como parámetro
-	        String url = userServiceUrl + "/user/"+ username +"/followingProfiles";
+            // Convierte el arreglo en un ArrayList para una mejor gestión
+            return new ArrayList<>(Arrays.asList(videosArray));
+        } catch (HttpClientErrorException e) {
+            // Maneja errores, como un 400 o 404
+            return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
+        }
+    }
 
-	        // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
-	        User[] usersArray = restTemplate.getForObject(url, User[].class);
+    public ArrayList<Long> getFollowingIds(String username) {
+        try {
+            // Construye la URL con el nombre de usuario como parámetro
+            String url = String.format("%s/user/%s/following", USER_SERVICE_URL, username);
 
-	        // Convierte el arreglo en un ArrayList para una mejor gestión
-	        return new ArrayList<>(Arrays.asList(usersArray));
-	    } catch (HttpClientErrorException e) {
-	        // Maneja errores, como un 400 o 404
-	        return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
-	    }
-	}
-	
-	public ArrayList<User> getNotFollowingProfiles(String username) {
-	    try {
-	        // Construye la URL con el nombre de usuario como parámetro
-	        String url = userServiceUrl + "/user/"+ username +"/notfollowingProfiles";
+            // Envía una solicitud GET al microservicio de usuarios y obtiene un arreglo de IDs
+            Long[] followingArray = restTemplate.getForObject(url, Long[].class);
 
-	        // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
-	        User[] usersArray = restTemplate.getForObject(url, User[].class);
+            // Convierte el arreglo en un ArrayList para una mejor gestión
+            return new ArrayList<>(Arrays.asList(followingArray));
+        } catch (HttpClientErrorException e) {
+            // Maneja errores como 400 o 404 devolviendo una lista vacía
+            System.out.println("Error al obtener los usuarios seguidos: " + e.getStatusCode());
+            return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
+        } catch (Exception e) {
+            // Manejo de otros errores no esperados
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
-	        // Convierte el arreglo en un ArrayList para una mejor gestión
-	        return new ArrayList<>(Arrays.asList(usersArray));
-	    } catch (HttpClientErrorException e) {
-	        // Maneja errores, como un 400 o 404
-	        return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
-	    }
-	}
+    public ArrayList<User> getFollowingProfiles(String username) {
+        try {
+            // Construye la URL con el nombre de usuario como parámetro
+            String url = String.format("%s/user/%s/followingProfiles", USER_SERVICE_URL, username);
 
-	
-	
+            // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
+            User[] usersArray = restTemplate.getForObject(url, User[].class);
 
+            // Convierte el arreglo en un ArrayList para una mejor gestión
+            return new ArrayList<>(Arrays.asList(usersArray));
+        } catch (HttpClientErrorException e) {
+            // Maneja errores, como un 400 o 404
+            return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
+        }
+    }
 
+    public ArrayList<User> getNotFollowingProfiles(String username) {
+        try {
+            // Construye la URL con el nombre de usuario como parámetro
+            String url = String.format("%s/user/%s/notfollowingProfiles", USER_SERVICE_URL, username);
+
+            // Envía una solicitud GET al microservicio de videos y obtiene un arreglo
+            User[] usersArray = restTemplate.getForObject(url, User[].class);
+
+            // Convierte el arreglo en un ArrayList para una mejor gestión
+            return new ArrayList<>(Arrays.asList(usersArray));
+        } catch (HttpClientErrorException e) {
+            // Maneja errores, como un 400 o 404
+            return new ArrayList<>(); // Devuelve una lista vacía si ocurre un error
+        }
+    }
 }
